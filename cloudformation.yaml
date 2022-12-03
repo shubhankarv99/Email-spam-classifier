@@ -1,0 +1,116 @@
+Description: AWS Email Spam Detection CTSN
+Parameters:
+  EndPointName:
+    Type: String
+    Default: abc-sms-spam-classifier-mxnet-2022-12-03-02-44-15-256
+  CodeBucket:
+    Type: String
+    Default: abc-s1-assigment-3-0001
+  CodeName:
+    Type: String
+    Default: abc-mail.zip
+  EmailBucket:
+    Type: String
+    Default: abc-email-ses-bucket-00001
+Resources:
+ S3BucketStoringEmailCloudFormation:
+    DependsOn: LambdaFunctionEmail
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Ref EmailBucket
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Event: "s3:ObjectCreated:Put"
+          Function: !GetAtt LambdaFunctionEmail.Arn
+ BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref S3BucketStoringEmailCloudFormation
+                - /*
+      Bucket: !Ref S3BucketStoringEmailCloudFormation
+ BucketPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref LambdaFunctionEmail
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref "AWS::AccountId"
+      SourceArn: !Sub "arn:aws:s3:::${EmailBucket}"
+
+ EmailLambdaCLoudFormation:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: emaillambdacloudformation-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonSESFullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchEventsFullAccess
+      Path: /
+
+ LambdaFunctionEmail:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Ref CodeName
+      Description: lambda function for email
+      Environment:
+        Variables:
+          ENDPOINT_NAME: !Ref EndPointName
+      Layers:
+        - arn:aws:lambda:us-east-1:668099181075:layer:AWSLambda-Python38-SciPy1x:107
+      FunctionName: LF_spam_classifier_ab
+      Handler: lambda_function.lambda_handler
+      MemorySize: 512
+      Role: 
+       Fn::GetAtt:
+          - EmailLambdaCLoudFormation
+          - Arn
+      Runtime: python3.8
+      Timeout: 60
+
+ LambdaFunctionEmailLog:
+  Type: 'AWS::Logs::LogGroup'
+  Properties:
+    LogGroupName: !Join
+      - ''
+      - - '/aws/lambda/'
+        - !Ref LambdaFunctionEmail
+  DependsOn: LambdaFunctionEmail
+
+ SesRuleSet:
+  Type: 'AWS::SES::ReceiptRuleSet'
+
+ SesRule:
+  Type: 'AWS::SES::ReceiptRule'
+  Properties:
+    Rule:
+      Actions:
+        - S3Action:
+            BucketName: !Ref S3BucketStoringEmailCloudFormation
+      Enabled: true
+      ScanEnabled: false
+    RuleSetName: !Ref SesRuleSet
