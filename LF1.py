@@ -21,8 +21,7 @@ def lambda_handler(event, context):
     
     logger.info('printing event')
     logger.info(event)
-    
-    
+    print("event", )
     bucket = event['Records'][0]['s3']['bucket']['name']
     print("bucket  ", bucket)
     key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
@@ -30,9 +29,7 @@ def lambda_handler(event, context):
     data = s3.get_object(Bucket=bucket,Key= key)
     contents = data['Body'].read()
     msg = email.message_from_bytes(contents)
-    
-
-    ENDPOINT_NAME = os.environ['sms-spam-classifier-mxnet-2022-12-03-02-44-15-256']
+    ENDPOINT_NAME = os.environ['ENDPOINT_NAME']
     runtime= boto3.client('runtime.sagemaker')   
     
     payload = ""
@@ -79,7 +76,7 @@ def lambda_handler(event, context):
     CLASSIFICATION_CONFIDENCE_SCORE = str(float(result['predicted_probability'][0][0]) * 100)
     
 
-    SENDER = "demo@spamdetectionmab.tk"
+    SENDER = "demo@cloudassigment3.me"
     RECIPIENT = msg['From']
     EMAIL_RECEIVE_DATE = msg["Date"]
     EMAIL_SUBJECT = msg["Subject"]
