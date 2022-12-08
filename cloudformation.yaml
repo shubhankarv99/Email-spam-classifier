@@ -2,16 +2,16 @@ Description: AWS Email Spam Detection CTSN
 Parameters:
   EndPointName:
     Type: String
-    Default: abc-sms-spam-classifier-mxnet-2022-12-03-02-44-15-256
+    Default: sms-spam-classifier-mxnet-2022-12-08-18-47-24-371
   CodeBucket:
     Type: String
-    Default: abc-s1-assigment-3-0001
+    Default: email-spam-sv
   CodeName:
     Type: String
-    Default: abc-mail.zip
+    Default: email-classifier.zip
   EmailBucket:
     Type: String
-    Default: abc-email-ses-bucket-00001
+    Default: email-ses-bucket-00001
 Resources:
  S3BucketStoringEmailCloudFormation:
     DependsOn: LambdaFunctionEmail
